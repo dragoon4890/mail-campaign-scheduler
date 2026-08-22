@@ -1,0 +1,88 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum EmailStatus {
+  PENDING
+  QUEUED
+  SENDING
+  SENT
+  FAILED
+}
+
+enum CampaignStatus {
+  ACTIVE
+  COMPLETED
+  CANCELLED
+}
+
+model User {
+  id        String     @id @default(uuid()) @db.Uuid
+  googleSub String     @unique @map("google_sub")
+  name      String
+  email     String     @unique
+  avatarUrl String?    @map("avatar_url")
+  createdAt DateTime   @default(now()) @map("created_at")
+
+  campaigns Campaign[]
+
+  @@map("users")
+}
+
+model Sender {
+  id       Int     @id @default(autoincrement())
+  email    String  @unique
+  smtpUser String  @map("smtp_user")
+  smtpPass String  @map("smtp_pass")
+  active   Boolean @default(true)
+
+  emails   Email[]
+
+  @@map("senders")
+}
+
+model Campaign {
+  id          String         @id @default(uuid()) @db.Uuid
+  userId      String         @map("user_id") @db.Uuid
+  user        User           @relation(fields: [userId], references: [id])
+  subject     String
+  body        String
+  startAt     DateTime       @map("start_at") @db.Timestamptz(3)
+  delayMs     Int            @map("delay_ms")
+  hourlyLimit Int            @map("hourly_limit")
+  totalCount  Int            @map("total_count")
+  status      CampaignStatus @default(ACTIVE)
+  createdAt   DateTime       @default(now()) @map("created_at")
+
+  emails Email[]
+
+  @@index([userId])
+  @@map("campaigns")
+}
+
+model Email {
+  id          String      @id @default(uuid()) @db.Uuid
+  campaignId  String      @map("campaign_id") @db.Uuid
+  campaign    Campaign    @relation(fields: [campaignId], references: [id])
+  senderId    Int         @map("sender_id")
+  sender      Sender      @relation(fields: [senderId], references: [id])
+  toEmail     String      @map("to_email")
+  subject     String
+  body        String
+  status      EmailStatus @default(PENDING)
+  scheduledAt DateTime    @map("scheduled_at") @db.Timestamptz(3)
+  sentAt      DateTime?   @map("sent_at") @db.Timestamptz(3)
+  messageId   String?     @map("message_id")
+  attempts    Int         @default(0)
+  lastError   String?     @map("last_error")
+  createdAt   DateTime    @default(now()) @map("created_at")
+
+  @@unique([campaignId, toEmail])
+  @@index([status, scheduledAt])
+  @@map("emails")
+}
