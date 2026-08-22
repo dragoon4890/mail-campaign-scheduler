@@ -1,0 +1,16 @@
+{
+  "name": "email-scheduler",
+  "private": true,
+  "packageManager": "pnpm@10.29.3",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev:api": "pnpm --filter @assign/shared build && pnpm --filter api dev",
+    "build": "pnpm -r build",
+    "typecheck": "pnpm -r typecheck"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.2"
+  }
+}
