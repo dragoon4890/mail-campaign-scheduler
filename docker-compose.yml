@@ -56,6 +56,10 @@ services:
       REDIS_URL: redis://redis:6379
       SMTP_HOST: smtp.ethereal.email
       SMTP_PORT: "587"
+      WORKER_CONCURRENCY: ${WORKER_CONCURRENCY:-5}
+      MIN_DELAY_MS: ${MIN_DELAY_MS:-2000}
+      MAX_EMAILS_PER_HOUR: ${MAX_EMAILS_PER_HOUR:-200}
+      MAX_EMAILS_PER_HOUR_PER_SENDER: ${MAX_EMAILS_PER_HOUR_PER_SENDER:-50}
     depends_on:
       postgres:
         condition: service_healthy

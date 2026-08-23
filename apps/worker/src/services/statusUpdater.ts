@@ -36,10 +36,22 @@ export const statusUpdater = {
     return res.count === 1;
   },
 
+  /** Rate-limit denial: back out of the claim entirely — a denied slot must
+   * not consume an attempt, and SENDING must never mean "waiting to retry". */
+  async revertToQueued(emailId: string): Promise<void> {
+    await prisma.email.updateMany({
+      where: { id: emailId, status: "SENDING" },
+      data: { status: "QUEUED", attempts: { decrement: 1 } },
+    });
+  },
+
   getWithSender(emailId: string) {
     return prisma.email.findUnique({
       where: { id: emailId },
-      include: { sender: true },
+      include: {
+        sender: true,
+        campaign: { select: { hourlyLimit: true } },
+      },
     });
   },
 };

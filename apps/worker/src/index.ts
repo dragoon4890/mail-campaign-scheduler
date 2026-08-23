@@ -9,9 +9,7 @@ import { config } from "./config";
 import { processSendEmail } from "./services/sendEmailProcessor";
 import { emailSender } from "./services/smtpTransport";
 
-// TODO(M3): concurrency becomes WORKER_CONCURRENCY env knob alongside
-// queue-level MIN_DELAY_MS limiter and per-sender rate limiting.
-const CONCURRENCY = 5;
+const CONCURRENCY = config.WORKER_CONCURRENCY;
 
 // Boot-time crash recovery: a row still SENDING when this process starts had
 // its owner killed mid-send (at-most-once window). Give it an honest terminal
@@ -40,7 +38,13 @@ async function main(): Promise<void> {
   const worker = new Worker<SendEmailJobData>(
     EMAIL_SEND_QUEUE,
     (job) => processSendEmail(job, { emailSender }),
-    { connection: { url: config.REDIS_URL }, concurrency: CONCURRENCY },
+    {
+      connection: { url: config.REDIS_URL },
+      concurrency: CONCURRENCY,
+      // Redis-coordinated across all instances: at most one send per
+      // MIN_DELAY_MS window, cluster-wide (DESIGN.md §9).
+      limiter: { max: 1, duration: config.MIN_DELAY_MS },
+    },
   );
 
   worker.on("completed", (job) => {

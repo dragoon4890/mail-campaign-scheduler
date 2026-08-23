@@ -3,6 +3,7 @@ import {
   INTERRUPTED,
   type SendEmailJobData,
 } from "@assign/shared";
+import { reserveSendSlot } from "./rateLimiter";
 import { statusUpdater } from "./statusUpdater";
 import type { EmailSender } from "./EmailSender";
 
@@ -15,8 +16,8 @@ function attemptsLimit(job: Job<SendEmailJobData>): number {
 }
 
 // Orchestrates ONE job. All state mutation is delegated to statusUpdater's
-// guarded transitions; all SMTP I/O to the injected EmailSender.
-// Safety model: at-most-once (see DESIGN.md §8.2).
+// guarded transitions; all SMTP I/O to the injected EmailSender; all
+// throttling to the rate limiter. Safety model: at-most-once (DESIGN.md §8.2).
 export async function processSendEmail(
   job: Job<SendEmailJobData>,
   deps: ProcessorDeps,
@@ -42,6 +43,21 @@ export async function processSendEmail(
     return; // ack without sending
   }
 
+  const reservation = await reserveSendSlot({
+    senderId: email.senderId,
+    campaignHourlyLimit: email.campaign.hourlyLimit,
+  });
+  if (!reservation.granted) {
+    // Hourly cap hit: back the claim out (denials must not burn attempts)
+    // and park the job at the top of the next window — never dropped.
+    await statusUpdater.revertToQueued(email.id);
+    await job.moveToDelayed(reservation.retryAtMs!, job.token);
+    console.log(
+      `job ${job.id}: hourly cap reached, rescheduled for ${new Date(reservation.retryAtMs!).toISOString()}`,
+    );
+    return;
+  }
+
   try {
     const { messageId } = await deps.emailSender.send({
       senderId: email.senderId,
@@ -61,3 +77,4 @@ export async function processSendEmail(
     throw error; // BullMQ schedules the next attempt with backoff
   }
 }
+

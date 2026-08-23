@@ -22,6 +22,10 @@ const envSchema = z.object({
   REDIS_URL: z.string().min(1),
   SMTP_HOST: z.string().min(1).default("smtp.ethereal.email"),
   SMTP_PORT: z.coerce.number().int().default(587),
+  WORKER_CONCURRENCY: z.coerce.number().int().min(1).max(50).default(5),
+  MAX_EMAILS_PER_HOUR: z.coerce.number().int().min(1).default(200),
+  MAX_EMAILS_PER_HOUR_PER_SENDER: z.coerce.number().int().min(1).default(50),
+  MIN_DELAY_MS: z.coerce.number().int().min(0).default(2000),
 });
 
 export type Config = z.infer<typeof envSchema>;
