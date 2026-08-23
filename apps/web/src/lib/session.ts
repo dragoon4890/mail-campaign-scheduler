@@ -1,4 +1,4 @@
-import { auth } from "@/auth";
+import { auth } from "@/authServer";
 
 export interface SessionUser {
   name?: string | null;
