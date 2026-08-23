@@ -45,6 +45,24 @@ services:
       redis:
         condition: service_healthy
 
+  # No HTTP listener -> no healthcheck; liveness = restart policy + logs.
+  worker:
+    build:
+      context: .
+      dockerfile: apps/worker/Dockerfile
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgres://email:email@postgres:5432/email_scheduler?sslmode=disable
+      REDIS_URL: redis://redis:6379
+      SMTP_HOST: smtp.ethereal.email
+      SMTP_PORT: "587"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
 volumes:
   postgres_data:
   redis_data:
