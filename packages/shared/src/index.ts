@@ -39,3 +39,10 @@ export interface CampaignScheduleResponse {
   duplicatesRemoved: number;
   startAt: string;
 }
+
+export const EMAIL_SEND_QUEUE = "email-send";
+export const EMAIL_SEND_JOB_PREFIX = "send:";
+
+export interface SendEmailJobData {
+  emailId: string;
+}
