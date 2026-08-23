@@ -7,7 +7,7 @@
     "build": "tsc -p tsconfig.json",
     "start": "node dist/index.js",
     "typecheck": "tsc --noEmit -p tsconfig.json",
-    "test": "dotenv -e ../../.env -- vitest run"
+    "test": "vitest run"
   },
   "dependencies": {
     "@assign/db": "workspace:*",
