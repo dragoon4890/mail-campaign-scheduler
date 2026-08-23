@@ -37,6 +37,7 @@ services:
       NODE_ENV: production
       DATABASE_URL: postgres://email:email@postgres:5432/email_scheduler?sslmode=disable
       REDIS_URL: redis://redis:6379
+      WEB_URL: ${WEB_URL:-http://localhost:3000}
     ports:
       - "${API_PORT:-4000}:4000"
     depends_on:

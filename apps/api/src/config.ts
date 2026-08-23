@@ -21,6 +21,7 @@ const envSchema = z.object({
     .default("development"),
   DATABASE_URL: z.string().min(1),
   REDIS_URL: z.string().min(1),
+  WEB_URL: z.string().url().default("http://localhost:3000"),
 });
 
 export type Config = z.infer<typeof envSchema>;
