@@ -20,6 +20,7 @@ const envSchema = z.object({
     .enum(["development", "test", "production"])
     .default("development"),
   DATABASE_URL: z.string().min(1),
+  REDIS_URL: z.string().min(1),
 });
 
 export type Config = z.infer<typeof envSchema>;
