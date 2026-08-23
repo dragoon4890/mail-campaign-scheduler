@@ -41,7 +41,7 @@ export interface CampaignScheduleResponse {
 }
 
 export const EMAIL_SEND_QUEUE = "email-send";
-export const EMAIL_SEND_JOB_PREFIX = "send:";
+export const EMAIL_SEND_JOB_PREFIX = "send-";
 
 export interface SendEmailJobData {
   emailId: string;
