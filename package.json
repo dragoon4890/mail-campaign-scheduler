@@ -6,7 +6,7 @@
     "node": ">=20"
   },
   "scripts": {
-    "dev:api": "pnpm --filter @assign/shared build && pnpm --filter api dev",
+    "dev:api": "pnpm -r build && pnpm --filter api dev",
     "build": "pnpm -r build",
     "test": "pnpm -r test",
     "typecheck": "pnpm -r typecheck"

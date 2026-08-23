@@ -14,9 +14,15 @@ importers:
 
   apps/api:
     dependencies:
+      '@assign/db':
+        specifier: workspace:*
+        version: link:../../packages/db
       '@assign/shared':
         specifier: workspace:*
         version: link:../../packages/shared
+      dotenv:
+        specifier: ^16.4.5
+        version: 16.6.1
       express:
         specifier: ^5.1.0
         version: 5.2.1
@@ -39,6 +45,9 @@ importers:
       '@prisma/client':
         specifier: ^6.16.0
         version: 6.19.3(prisma@6.19.3(typescript@5.9.3))(typescript@5.9.3)
+      prisma:
+        specifier: ^6.16.0
+        version: 6.19.3(typescript@5.9.3)
     devDependencies:
       '@types/node':
         specifier: ^22.10.0
@@ -46,9 +55,6 @@ importers:
       dotenv-cli:
         specifier: ^7.4.0
         version: 7.4.4
-      prisma:
-        specifier: ^6.16.0
-        version: 6.19.3(typescript@5.9.3)
       tsx:
         specifier: ^4.19.2
         version: 4.23.12

@@ -6,13 +6,16 @@ RUN corepack enable
 
 COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
 COPY packages/shared/package.json packages/shared/
+COPY packages/db/package.json packages/db/
 COPY apps/api/package.json apps/api/
 RUN pnpm install --frozen-lockfile
 
 COPY tsconfig.base.json ./
 COPY packages/shared/ packages/shared/
+COPY packages/db/ packages/db/
 COPY apps/api/ apps/api/
-RUN pnpm --filter @assign/shared build && pnpm --filter api build
+# pnpm blocks postinstall hooks, so prisma generate must be explicit
+RUN pnpm --filter @assign/db db:generate && pnpm -r build
 
 FROM node:22-alpine
 WORKDIR /app
@@ -21,10 +24,15 @@ RUN corepack enable
 
 COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
 COPY packages/shared/package.json packages/shared/
+COPY packages/db/package.json packages/db/
 COPY apps/api/package.json apps/api/
 RUN pnpm install --frozen-lockfile --prod
 
+COPY packages/db/prisma packages/db/prisma/
+RUN pnpm --filter @assign/db db:generate
+
 COPY --from=build /app/packages/shared/dist packages/shared/dist
+COPY --from=build /app/packages/db/dist packages/db/dist
 COPY --from=build /app/apps/api/dist apps/api/dist
 
 USER node

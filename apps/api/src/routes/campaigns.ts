@@ -1,13 +1,14 @@
-import { randomUUID } from "node:crypto";
 import { Router } from "express";
+import { campaignInputSchema } from "@assign/shared";
 import {
-  campaignInputSchema,
-  type CampaignScheduleResponse,
-} from "@assign/shared";
+  NoSendersError,
+  scheduleCampaign,
+} from "../services/campaignService";
+import type { NextFunction, Request, Response } from "express";
 
 export const campaignsRouter = Router();
 
-campaignsRouter.post("/", (req, res) => {
+campaignsRouter.post("/", (req: Request, res: Response, next: NextFunction) => {
   const parsed = campaignInputSchema.safeParse(req.body);
 
   if (!parsed.success) {
@@ -20,16 +21,17 @@ campaignsRouter.post("/", (req, res) => {
     });
   }
 
-  const input = parsed.data;
-  const uniqueLeads = [...new Set(input.leads)];
+  scheduleCampaign(parsed.data)
+    .then((response) => res.status(201).json(response))
+    .catch((error: unknown) => {
+      if (error instanceof NoSendersError) {
+        return res.status(503).json({
+          error: "no_senders_configured",
+          message: error.message,
+        });
+      }
+      return next(error);
+    });
 
-  const response: CampaignScheduleResponse = {
-    id: randomUUID(),
-    totalLeads: input.leads.length,
-    uniqueLeads: uniqueLeads.length,
-    duplicatesRemoved: input.leads.length - uniqueLeads.length,
-    startAt: input.startAt,
-  };
-
-  return res.status(201).json(response);
+  return undefined;
 });
