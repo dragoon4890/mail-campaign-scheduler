@@ -46,3 +46,5 @@ export const EMAIL_SEND_JOB_PREFIX = "send-";
 export interface SendEmailJobData {
   emailId: string;
 }
+
+export const INTERRUPTED = "interrupted";
