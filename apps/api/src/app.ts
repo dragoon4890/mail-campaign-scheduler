@@ -3,6 +3,7 @@ import cors from "cors";
 import { healthRouter } from "./routes/health";
 import { campaignsRouter } from "./routes/campaigns";
 import { emailsRouter } from "./routes/emails";
+import { sendersRouter } from "./routes/senders";
 import { config } from "./config";
 
 export function createApp(): express.Express {
@@ -14,6 +15,7 @@ export function createApp(): express.Express {
   app.use("/healthz", healthRouter);
   app.use("/api/v1/campaigns", campaignsRouter);
   app.use("/api/v1/emails", emailsRouter);
+  app.use("/api/v1/senders", sendersRouter);
 
   app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
     if (err instanceof SyntaxError && "body" in err) {

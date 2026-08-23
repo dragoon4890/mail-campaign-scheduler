@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { SearchIcon, FilterIcon, RefreshIcon, ClockIcon, SendIcon, StarIcon } from "@/components/icons";
 import type { EmailRow } from "@/lib/api";
 
@@ -61,7 +62,11 @@ export function EmailList({
   return (
     <div className="divide-y divide-gray-100">
       {rows.map((row) => (
-        <div key={row.id} className="flex items-center gap-3 py-4 pr-2 text-sm">
+        <Link
+          key={row.id}
+          href={`/email/${row.id}`}
+          className="flex items-center gap-3 py-4 pr-2 text-sm hover:bg-gray-50"
+        >
           <span className="w-[140px] shrink-0 truncate font-semibold text-gray-900">
             To: {row.toEmail}
           </span>
@@ -85,7 +90,7 @@ export function EmailList({
           <button className="ml-auto shrink-0 text-gray-300 hover:text-yellow-400" aria-label="Star">
             <StarIcon className="h-4 w-4" />
           </button>
-        </div>
+        </Link>
       ))}
     </div>
   );

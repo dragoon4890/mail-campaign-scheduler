@@ -56,3 +56,17 @@ emailsRouter.get("/stats", async (_req, res, next) => {
     next(error);
   }
 });
+
+emailsRouter.get("/:id", async (req, res, next) => {
+  try {
+    const row = await prisma.email.findUnique({
+      where: { id: req.params.id },
+      select: { ...ROW_SELECT, sender: { select: { email: true } } },
+    });
+    if (!row) return res.status(404).json({ error: "not_found" });
+    const { sender, ...rest } = row;
+    res.json({ ...rest, senderEmail: sender.email });
+  } catch (error) {
+    next(error);
+  }
+});

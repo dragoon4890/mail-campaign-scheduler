@@ -1,7 +1,6 @@
 "use client";
 
-import { useState } from "react";
-import { ComposeModal } from "@/components/ComposeModal";
+import { useRouter } from "next/navigation";
 import { Sidebar } from "@/components/Sidebar";
 import type { Stats } from "@/lib/api";
 import type { SessionUser } from "@/lib/session";
@@ -15,13 +14,16 @@ export function AppShell({
   stats: Stats;
   children: React.ReactNode;
 }) {
-  const [composeOpen, setComposeOpen] = useState(false);
+  const router = useRouter();
 
   return (
     <div className="flex min-h-screen bg-white">
-      <Sidebar user={user} stats={stats} onCompose={() => setComposeOpen(true)} />
+      <Sidebar
+        user={user}
+        stats={stats}
+        onCompose={() => router.push("/compose")}
+      />
       <main className="flex-1 p-6">{children}</main>
-      <ComposeModal open={composeOpen} onClose={() => setComposeOpen(false)} />
     </div>
   );
 }
