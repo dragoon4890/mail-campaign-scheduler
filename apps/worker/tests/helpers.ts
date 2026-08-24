@@ -80,6 +80,25 @@ export function countingSender(): {
   };
 }
 
+/** Sender that always rejects (e.g. SMTP 429) — every call throws. */
+export function failingSender(): {
+  calls: SendEmailRequest[];
+  emailSender: EmailSender;
+} {
+  const calls: SendEmailRequest[] = [];
+  return {
+    calls,
+    emailSender: {
+      async send(request) {
+        calls.push(request);
+        throw new Error(
+          "Can't send mail - all recipients were rejected: 429 Rate limited",
+        );
+      },
+    },
+  };
+}
+
 export async function truncateAll(): Promise<void> {
   await prisma.$executeRawUnsafe(
     'TRUNCATE "emails", "campaigns", "senders", "users" RESTART IDENTITY CASCADE',

@@ -68,13 +68,12 @@ export async function processSendEmail(
     });
     await statusUpdater.markSent(email.id, messageId);
   } catch (error) {
-    if (email.attempts >= attemptsLimit(job)) {
-      const message = error instanceof Error ? error.message : String(error);
-      await statusUpdater.markFailed(email.id, message);
-      console.error(`job ${job.id}: FAILED permanently: ${message}`);
-      return;
-    }
-    throw error; // BullMQ schedules the next attempt with backoff
+    // Confirmed rejection (429, bad recipient, connection refused...): the
+    // server never accepted the message. Stop for this mailbox — FAILED is
+    // terminal. No send-retries anywhere: at-most-once stays structural.
+    const message = error instanceof Error ? error.message : String(error);
+    await statusUpdater.markFailed(email.id, message);
+    console.error(`job ${job.id}: FAILED permanently: ${message}`);
   }
 }
 

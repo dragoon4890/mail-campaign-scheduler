@@ -6,6 +6,7 @@ import { reserveSendSlot } from "../src/services/rateLimiter";
 import {
   countingSender,
   fakeJob,
+  failingSender,
   resetRedis,
   seedEmail,
   truncateAll,
@@ -79,6 +80,33 @@ describe("claim-guard: exactly-once sends", () => {
     expect(deps.calls).toHaveLength(1);
     const row = await prisma.email.findUniqueOrThrow({ where: { id: emailId } });
     expect(row.status).toBe("SENT");
+  });
+});
+
+describe("smtp failure: stop at failure, never retry a send", () => {
+  it("case 6: confirmed rejection -> FAILED terminal on first attempt", async () => {
+    const { emailId } = await seedEmail("QUEUED");
+    const deps = failingSender();
+
+    await processSendEmail(fakeJob(emailId), deps);
+
+    expect(deps.calls).toHaveLength(1);
+    const row = await prisma.email.findUniqueOrThrow({ where: { id: emailId } });
+    expect(row.status).toBe("FAILED");
+    expect(row.lastError).toContain("429");
+    expect(row.attempts).toBe(1);
+  });
+
+  it("case 7: redelivery after a failed send -> acks without re-sending", async () => {
+    const { emailId } = await seedEmail("QUEUED");
+    const deps = failingSender();
+
+    await processSendEmail(fakeJob(emailId), deps);
+    await processSendEmail(fakeJob(emailId), deps);
+
+    expect(deps.calls).toHaveLength(1);
+    const row = await prisma.email.findUniqueOrThrow({ where: { id: emailId } });
+    expect(row.status).toBe("FAILED");
   });
 });
 
