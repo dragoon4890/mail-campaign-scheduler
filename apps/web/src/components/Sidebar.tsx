@@ -1,7 +1,9 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { signOut } from "next-auth/react";
 import {
   ClockIcon,
   SendIcon,
@@ -49,6 +51,7 @@ export function Sidebar({
   onCompose: () => void;
 }) {
   const pathname = usePathname();
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
   const initials = (user.name ?? "U")
     .split(" ")
     .map((p) => p[0])
@@ -62,18 +65,43 @@ export function Sidebar({
         ONB
       </h1>
 
-      <button className="flex items-center gap-2 rounded-lg p-2 text-left hover:bg-gray-50">
-        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-green-100 text-xs font-bold text-green-700">
-          {initials}
-        </span>
-        <span className="min-w-0 flex-1">
-          <span className="block truncate text-sm font-semibold text-gray-900">
-            {user.name}
+      <div className="relative">
+        <button
+          onClick={() => setUserMenuOpen((v) => !v)}
+          className="flex w-full items-center gap-2 rounded-lg p-2 text-left hover:bg-gray-50"
+        >
+          {user.image ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={user.image}
+              alt={user.name ?? "avatar"}
+              className="h-8 w-8 shrink-0 rounded-full object-cover"
+              referrerPolicy="no-referrer"
+            />
+          ) : (
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-green-100 text-xs font-bold text-green-700">
+              {initials}
+            </span>
+          )}
+          <span className="min-w-0 flex-1">
+            <span className="block truncate text-sm font-semibold text-gray-900">
+              {user.name}
+            </span>
+            <span className="block truncate text-xs text-gray-400">{user.email}</span>
           </span>
-          <span className="block truncate text-xs text-gray-400">{user.email}</span>
-        </span>
-        <ChevronDownIcon className="h-4 w-4 shrink-0 text-gray-400" />
-      </button>
+          <ChevronDownIcon className="h-4 w-4 shrink-0 text-gray-400" />
+        </button>
+        {userMenuOpen && (
+          <div className="absolute left-0 right-0 top-full z-20 mt-1 rounded-lg border border-gray-200 bg-white py-1 shadow-lg">
+            <button
+              onClick={() => void signOut({ callbackUrl: "/" })}
+              className="w-full px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-50"
+            >
+              Log out
+            </button>
+          </div>
+        )}
+      </div>
 
       <button
         onClick={onCompose}
