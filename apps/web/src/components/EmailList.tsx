@@ -77,8 +77,14 @@ export function EmailList({
               {formatWhen(row.scheduledAt)}
             </span>
           ) : (
-            <span className="shrink-0 rounded-md bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-500">
-              Sent
+            <span
+              className={`shrink-0 rounded-md px-2 py-0.5 text-xs font-medium ${
+                row.status === "FAILED"
+                  ? "bg-red-100 text-red-700"
+                  : "bg-gray-100 text-gray-500"
+              }`}
+            >
+              {row.status === "FAILED" ? "Failed" : "Sent"}
             </span>
           )}
 

@@ -4,6 +4,7 @@ import { Router } from "express";
 export const emailsRouter = Router();
 
 const SCHEDULED = ["PENDING", "QUEUED", "SENDING"] as const;
+const FINISHED = ["SENT", "FAILED"] as const;
 
 const ROW_SELECT = {
   id: true,
@@ -22,15 +23,19 @@ emailsRouter.get("/", async (req, res, next) => {
 
     const where =
       status === "sent"
-        ? { status: "SENT" as const }
+        ? { status: { in: [...FINISHED] } }
         : status === "failed"
           ? { status: "FAILED" as const }
           : { status: { in: [...SCHEDULED] } };
 
+
     const rows = await prisma.email.findMany({
       where,
       select: ROW_SELECT,
-      orderBy: status === "sent" ? { sentAt: "desc" } : { scheduledAt: "asc" },
+      orderBy:
+        status === "sent" || status === "failed"
+          ? { sentAt: "desc" }
+          : { scheduledAt: "asc" },
       take: limit,
     });
 
