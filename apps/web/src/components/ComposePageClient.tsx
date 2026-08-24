@@ -8,7 +8,6 @@ import {
 } from "@/components/EditorToolbar";
 import {
   RecipientChips,
-  UploadListLink,
 } from "@/components/RecipientChips";
 import { SendLaterMenu } from "@/components/SendLaterMenu";
 
@@ -179,7 +178,6 @@ export function ComposePageClient({ senders }: { senders: Sender[] }) {
         <div className="flex items-center gap-4 border-b border-gray-200 py-3">
           <span className="w-[130px] shrink-0 text-sm text-gray-800">To</span>
           <RecipientChips emails={recipients} onChange={setRecipients} />
-          <UploadListLink onClick={() => fileRef.current?.click()} />
         </div>
 
         <div className="flex items-center gap-4 border-b border-gray-200 py-3">

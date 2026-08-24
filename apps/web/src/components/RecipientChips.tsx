@@ -84,13 +84,17 @@ export function RecipientChips({
         type="file"
         accept=".csv,.txt"
         className="hidden"
-        onChange={(e) => onFile(e.target.files?.[0] ?? null)}
+        onChange={(e) => {
+          onFile(e.target.files?.[0] ?? null);
+          e.target.value = ""; // allow re-picking the same file
+        }}
       />
+      <UploadListLink onClick={() => fileRef.current?.click()} />
     </div>
   );
 }
 
-export function UploadListLink({ onClick }: { onClick: () => void }) {
+function UploadListLink({ onClick }: { onClick: () => void }) {
   return (
     <button
       onClick={onClick}
