@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { parseLeadsCsv } from "@/lib/csv";
+import { parseLeadsCsv } from "@assign/shared";
 
 // Recipient chip input with Upload List; shows first 3 chips + "+N" overflow
 // exactly like the design.

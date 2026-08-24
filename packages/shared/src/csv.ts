@@ -5,7 +5,8 @@ export interface CsvParseResult {
   invalidLines: number;
 }
 
-// Pure client-side CSV/TXT lead parser: extracts, normalises, dedupes.
+// Pure CSV/TXT lead parser: extracts, normalises, dedupes. No I/O — the
+// browser reads file text, the server re-validates every address anyway.
 export function parseLeadsCsv(text: string): CsvParseResult {
   const found = text.match(EMAIL_RE) ?? [];
   const emails = [...new Set(found.map((e) => e.trim().toLowerCase()))];

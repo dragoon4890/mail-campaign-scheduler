@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+export { parseLeadsCsv, type CsvParseResult } from "./csv";
+
 export const EMAIL_STATUSES = [
   "PENDING",
   "QUEUED",
