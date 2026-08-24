@@ -18,10 +18,32 @@
 
 ## Architecture
 
-<!-- Diagram + 3-sentence summary. Reuse DESIGN.md §3 mermaid flowchart and its core rule:
-"Postgres owns WHAT should happen; Redis/BullMQ owns WHEN it gets triggered."
+<!-- Diagram + 3-sentence summary. Reuse DESIGN.md §3 mermaid flowchart.
 Mention api / worker / web are separate processes (independent scaling, crash isolation).
 -->
+
+> **Postgres owns *what should happen*; Redis/BullMQ only owns *when/how it gets triggered*.**
+> Every user-visible state (scheduled/sent lists) is read from Postgres; Redis can delay or strand a send, but never duplicate or erase one.
+
+### API
+
+| Method | Path | Purpose |
+|---|---|---|
+| GET | `/healthz` | Liveness |
+| POST | `/api/v1/campaigns` | Schedule a batch: `{subject, body, leads[], startAt, delayMs, hourlyLimit}` → `201 {id, totalLeads, uniqueLeads, duplicatesRemoved}` |
+| GET | `/api/v1/emails?status=scheduled\|sent\|failed&limit=` | Dashboard lists (`sent` includes FAILED rows with per-row status) |
+| GET | `/api/v1/emails/:id` | Single email detail incl. sender + message id |
+| GET | `/api/v1/emails/stats` | Header counters: scheduled / sent / failed |
+| GET | `/api/v1/senders` | Active SMTP sender identities |
+
+## Redis crash behavior
+
+| Redis event | Queued emails | Why |
+|---|---|---|
+| Crash + normal restart | **Safe** — replayed from AOF (`appendfsync everysec`), fire at their scheduled moment | Delayed-job entries are persisted writes; worst case loses the final ~1s before the crash |
+| Crash inside a send window | **Never re-sent** (claim guard blocks redelivery); bounded stray → `FAILED(interrupted)` at next worker boot | Milliseconds-wide window; at-most-once is structural |
+| Partial AOF corruption/truncation | Untested middle ground — behavior depends on redis-server's refuse-vs-truncate settings for a corrupt tail | Acknowledged gap, not built for (see DESIGN.md §8.3) |
+| Volume wiped (no AOF to replay) | Jobs gone; rows stay `QUEUED` in Postgres | Requires reconciliation — see limitations below |
 
 ## Quickstart
 
@@ -72,6 +94,12 @@ pnpm -r test    # 29 automated cases: claim-guard races, limiter atomicity,
 - Ethereal rate-limits ~130+ rapid sends/account/hour externally; those become honest FAILED rows
 - Cross-window ordering approximate (correctness dominates FIFO)
 -->
+
+- **Total Redis data loss requires reconciliation.** `POST /admin/reconcile` was designed for exactly this — re-enqueue every `QUEUED` row idempotently via the deterministic `send-{emailId}` job ids (DESIGN.md §8.3) — but is not implemented under deadline scope. Until it exists, any manual re-enqueue **must** reuse those deterministic ids; ad-hoc insertion is the one path that could break never-duplicate.
+- Attachments are a UI placeholder; bodies ship as plain text (explicit assignment non-goals).
+- Auth is owned by the web layer: API routes trust CORS/loopback origins instead of verifying their own JWTs (deliberate deviation, documented in DESIGN.md §7).
+- Ethereal rate-limits ~130+ rapid sends per account per hour (external to our limiter); confirmed rejections become honest terminal `FAILED` rows.
+- Ordering across hour windows is approximate — correctness (exactly-once, no drops) dominates strict FIFO.
 
 ## Repo map
 
