@@ -200,6 +200,7 @@ export function ComposePageClient({ senders }: { senders: Sender[] }) {
             placeholder="00"
             className="h-8 w-16 rounded-md border border-gray-300 text-center text-sm outline-none focus:border-green-500"
           />
+          <span className="-ml-2 text-sm text-gray-500">sec</span>
           <span className="ml-4 text-sm text-gray-800">Hourly Limit</span>
           <input
             value={hourlyLimit}

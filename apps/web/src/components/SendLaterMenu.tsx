@@ -47,17 +47,13 @@ export function SendLaterMenu({
     <div className="absolute right-0 top-11 z-50 w-[260px] rounded-xl border border-gray-200 bg-white p-4 shadow-lg">
       <p className="mb-3 text-sm font-semibold text-gray-900">Send Later</p>
 
-      <div className="mb-3 flex items-center justify-between border-b border-gray-200 pb-2">
+      <div className="mb-3 flex items-center border-b border-gray-200 pb-2">
         <input
           type="datetime-local"
           value={custom}
           onChange={(e) => setCustom(e.target.value)}
-          className="text-sm text-gray-500 outline-none"
+          className="w-full text-sm text-gray-500 outline-none"
         />
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-4 w-4 text-gray-400">
-          <rect x="3" y="5" width="18" height="16" rx="2" />
-          <path d="M8 3v4M16 3v4M3 10h18" />
-        </svg>
       </div>
 
       <div className="flex flex-col">
