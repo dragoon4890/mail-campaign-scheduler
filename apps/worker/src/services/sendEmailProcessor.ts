@@ -94,10 +94,17 @@ export async function processSendEmail(
     // Infrastructure failure (connection refused, timeout, DNS) → the sender is
     // dead, not the email. Reroute to a healthy sender if one exists; else fail.
     if (isInfrastructureError(error)) {
-      const nextSender = await statusUpdater.findNextHealthySenderId(email.senderId);
+      // Track excluded senders cumulatively in job data across retries
+      const triedSenderIds: number[] = job.data.triedSenderIds ?? [];
+      if (!triedSenderIds.includes(email.senderId)) {
+        triedSenderIds.push(email.senderId);
+      }
+      const nextSender = await statusUpdater.findNextHealthySenderId(triedSenderIds);
       if (nextSender) {
         await statusUpdater.reassignAndRevert(email.id, nextSender);
-        console.warn(`job ${job.id}: sender ${email.senderId} down, rerouted to ${nextSender}`);
+        // Persist the exclusion list for the next attempt
+        await job.updateData({ ...job.data, triedSenderIds });
+        console.warn(`job ${job.id}: sender ${email.senderId} down, rerouted to ${nextSender} (tried: ${triedSenderIds.join(",")})`);
         return; // requeued; next attempt picks up with new sender
       }
     }

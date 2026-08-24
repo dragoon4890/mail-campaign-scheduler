@@ -47,6 +47,7 @@ export const EMAIL_SEND_JOB_PREFIX = "send-";
 
 export interface SendEmailJobData {
   emailId: string;
+  triedSenderIds?: number[];
 }
 
 export const INTERRUPTED = "interrupted";

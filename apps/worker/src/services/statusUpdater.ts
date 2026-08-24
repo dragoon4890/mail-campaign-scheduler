@@ -55,10 +55,10 @@ export const statusUpdater = {
     });
   },
 
-  /** Find the next active sender that isn't the one that just failed. */
-  async findNextHealthySenderId(excludeId: number): Promise<number | null> {
+  /** Find the next active sender not in the exclude list. */
+  async findNextHealthySenderId(excludeIds: number[]): Promise<number | null> {
     const senders = await prisma.sender.findMany({
-      where: { active: true, id: { not: excludeId } },
+      where: { active: true, id: { notIn: excludeIds } },
       select: { id: true },
       orderBy: { id: "asc" },
       take: 1,
