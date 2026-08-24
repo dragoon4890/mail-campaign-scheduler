@@ -45,6 +45,27 @@ export const statusUpdater = {
     });
   },
 
+  /** Infrastructure failure: reassign to a different sender and revert to QUEUED
+   * so the next attempt picks up with the new sender. Does NOT decrement attempts
+   * (a real send WAS attempted, unlike a rate-limit denial). */
+  async reassignAndRevert(emailId: string, newSenderId: number): Promise<void> {
+    await prisma.email.updateMany({
+      where: { id: emailId, status: "SENDING" },
+      data: { senderId: newSenderId, status: "QUEUED" },
+    });
+  },
+
+  /** Find the next active sender that isn't the one that just failed. */
+  async findNextHealthySenderId(excludeId: number): Promise<number | null> {
+    const senders = await prisma.sender.findMany({
+      where: { active: true, id: { not: excludeId } },
+      select: { id: true },
+      orderBy: { id: "asc" },
+      take: 1,
+    });
+    return senders.length > 0 ? senders[0].id : null;
+  },
+
   getWithSender(emailId: string) {
     return prisma.email.findUnique({
       where: { id: emailId },

@@ -15,6 +15,26 @@ function attemptsLimit(job: Job<SendEmailJobData>): number {
   return job.opts.attempts ?? 1;
 }
 
+// Distinguish infrastructure failures (sender-side: connection refused,
+// timeout, DNS) from message failures (recipient-side: 429, bad address).
+// Infrastructure failures are reroutable — the email is fine, just routed
+// to a dead mailbox. Message failures are terminal — retrying the same
+// recipient through another sender would be a duplicate risk.
+function isInfrastructureError(error: unknown): boolean {
+  const code = (error as any)?.code as string | undefined;
+  const msg = error instanceof Error ? error.message : String(error);
+  return (
+    code === "ECONNREFUSED" ||
+    code === "ETIMEDOUT" ||
+    code === "ENOTFOUND" ||
+    code === "ECONNRESET" ||
+    code === "EAI_AGAIN" ||
+    /connection refused/i.test(msg) ||
+    /timed? ?out/i.test(msg) ||
+    /name resolution/i.test(msg)
+  );
+}
+
 // Orchestrates ONE job. All state mutation is delegated to statusUpdater's
 // guarded transitions; all SMTP I/O to the injected EmailSender; all
 // throttling to the rate limiter. Safety model: at-most-once (DESIGN.md §8.2).
@@ -71,9 +91,17 @@ export async function processSendEmail(
     });
     await statusUpdater.markSent(email.id, messageId);
   } catch (error) {
-    // Confirmed rejection (429, bad recipient, connection refused...): the
-    // server never accepted the message. Stop for this mailbox — FAILED is
-    // terminal. No send-retries anywhere: at-most-once stays structural.
+    // Infrastructure failure (connection refused, timeout, DNS) → the sender is
+    // dead, not the email. Reroute to a healthy sender if one exists; else fail.
+    if (isInfrastructureError(error)) {
+      const nextSender = await statusUpdater.findNextHealthySenderId(email.senderId);
+      if (nextSender) {
+        await statusUpdater.reassignAndRevert(email.id, nextSender);
+        console.warn(`job ${job.id}: sender ${email.senderId} down, rerouted to ${nextSender}`);
+        return; // requeued; next attempt picks up with new sender
+      }
+    }
+    // Message failure (429, bad recipient, etc.) or no healthy sender left → terminal.
     const message = error instanceof Error ? error.message : String(error);
     await statusUpdater.markFailed(email.id, message);
     console.error(`job ${job.id}: FAILED permanently: ${message}`);
