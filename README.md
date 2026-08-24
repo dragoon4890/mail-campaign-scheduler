@@ -51,13 +51,15 @@ The assignment draws one hard line: the same email must never go out more than o
 
 An at-least-once system retries until success and will eventually deliver a duplicate. This project is at-most-once instead: an email goes out once or not at all. For cold outreach the trade is lopsided. One lost send costs you a lead; one duplicate burns them.
 
+The usual defense for at-least-once is verification, which is why payments can afford retries. A bank runs on a ledger with idempotency keys, so when a duplicate charge slips through it gets detected during reconciliation and reversed before anyone notices the difference. Email has none of that leeway. The SMTP server accepts a message and forgets it; there is no delivery receipt to dedupe against and no ledger to ask whether a copy already landed. Here a retry cannot be verified, only hoped for — so the only safe move is to never need one.
+
 Three mechanisms hold the line:
 
 **Claim guard.** Sending starts with a guarded database transition, `UPDATE … SET status='SENDING' WHERE id=? AND status='QUEUED'`. Exactly one worker wins that race. Everyone else acks and walks away without sending.
 
 **Stop at confirmed failure.** When SMTP throws, the server refused the message. That is terminal: the row becomes `FAILED` with the error recorded. The worker contains no send-retry logic at all. Retrying sounded safer on paper and broke in practice; when Ethereal began answering 429 during load tests, the original retry path left rows stuck mid-state permanently. Stopping at rejection fixed it and made the guarantee easy to state: every message was either accepted once or failed visibly.
 
-**Honest crash windows.** If the worker dies between claiming a row and SMTP accepting the message, that email is lost. The boot sweep or a later redelivery check marks it `FAILED(interrupted)`. That outcome hurts, but it is bounded, visible, and it can never come back as two copies.
+**Orphaned sends get swept honest.** Between claiming a row and SMTP accepting the message, a server crash or a dropped connection can leave that row stranded in `SENDING` with its owner gone. On the next worker boot, a sweep finds every orphaned `SENDING` row and marks it `FAILED(interrupted)`. The status never updated because the process died mid-send — so the sweep closes the loop instead of pretending it never happened. That outcome hurts, but it is bounded, visible, and it can never come back as two copies.
 
 So the cost, stated without spin: a crash can sacrifice an email. It can never clone one.
 
