@@ -64,6 +64,24 @@ export function fakeJob(emailId: string): Job<SendEmailJobData> {
   } as unknown as Job<SendEmailJobData>;
 }
 
+/** Job double whose moveToDelayed records the park request instead of
+ * touching Redis — lets tests drive the rate-limit denial branch. */
+export function deferredStubJob(emailId: string): {
+  job: Job<SendEmailJobData>;
+  moves: Array<{ ms: number; token?: string }>;
+} {
+  const moves: Array<{ ms: number; token?: string }> = [];
+  const job = {
+    data: { emailId },
+    opts: { attempts: 3 },
+    id: crypto.randomUUID(),
+    moveToDelayed: async (ms: number, token?: string) => {
+      moves.push({ ms, token });
+    },
+  } as unknown as Job<SendEmailJobData>;
+  return { job, moves };
+}
+
 export function countingSender(): {
   calls: SendEmailRequest[];
   emailSender: EmailSender;

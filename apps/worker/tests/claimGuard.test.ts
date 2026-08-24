@@ -1,10 +1,12 @@
 import { beforeEach, describe, expect, it } from "vitest";
+import { DelayedError } from "bullmq";
 import { prisma } from "@assign/db";
 import { INTERRUPTED } from "@assign/shared";
 import { processSendEmail } from "../src/services/sendEmailProcessor";
 import { reserveSendSlot } from "../src/services/rateLimiter";
 import {
   countingSender,
+  deferredStubJob,
   fakeJob,
   failingSender,
   resetRedis,
@@ -107,6 +109,27 @@ describe("smtp failure: stop at failure, never retry a send", () => {
     expect(deps.calls).toHaveLength(1);
     const row = await prisma.email.findUniqueOrThrow({ where: { id: emailId } });
     expect(row.status).toBe("FAILED");
+  });
+
+  it("case 8: cap denial -> revert + refund + park, signals DelayedError", async () => {
+    const { emailId, senderId } = await seedEmail("QUEUED");
+    const deps = countingSender();
+    const seeded = await prisma.email.findUniqueOrThrow({ where: { id: emailId } });
+    await prisma.campaign.update({
+      where: { id: seeded.campaignId },
+      data: { hourlyLimit: 1 },
+    });
+    // consume the lane's single slot so the processor's reserve is denied
+    await reserveSendSlot({ senderId, campaignHourlyLimit: 1 });
+
+    const { job, moves } = deferredStubJob(emailId);
+    await expect(processSendEmail(job, deps)).rejects.toBeInstanceOf(DelayedError);
+
+    expect(deps.calls).toHaveLength(0);
+    expect(moves).toHaveLength(1);
+    const row = await prisma.email.findUniqueOrThrow({ where: { id: emailId } });
+    expect(row.status).toBe("QUEUED");
+    expect(row.attempts).toBe(0); // denial refunded the claim's attempt
   });
 });
 

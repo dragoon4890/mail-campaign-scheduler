@@ -1,4 +1,4 @@
-import type { Job } from "bullmq";
+import { DelayedError, type Job } from "bullmq";
 import {
   INTERRUPTED,
   type SendEmailJobData,
@@ -55,7 +55,10 @@ export async function processSendEmail(
     console.log(
       `job ${job.id}: hourly cap reached, rescheduled for ${new Date(reservation.retryAtMs!).toISOString()}`,
     );
-    return;
+    // BullMQ contract: after a manual moveToDelayed the processor must throw
+    // DelayedError so the worker skips its own completion step. Returning
+    // normally makes BullMQ double-move and log missing-lock stack traces.
+    throw new DelayedError();
   }
 
   try {
