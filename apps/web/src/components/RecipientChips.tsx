@@ -90,6 +90,11 @@ export function RecipientChips({
         }}
       />
       <UploadListLink onClick={() => fileRef.current?.click()} />
+      {emails.length > 0 && (
+        <span className="shrink-0 text-xs text-gray-400">
+          {emails.length} detected
+        </span>
+      )}
     </div>
   );
 }
