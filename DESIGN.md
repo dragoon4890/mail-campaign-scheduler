@@ -221,7 +221,7 @@ return v
 
 Effective hourly cap per email = `min(env.MAX_EMAILS_PER_HOUR_GLOBAL, env.MAX_EMAILS_PER_HOUR_PER_SENDER, campaign.hourly_limit)`.
 
-**Per-campaign metering decision (final):** the campaign value only *lowers the lane threshold* through this `min()` — no separate `ratelimit:campaign:{id}` counter key. Strict per-campaign ceilings were considered and declined (extra key complexity without assignment need).
+**Per-campaign metering decision (final):** the campaign value only *lowers the lane threshold* through this `min()` — no separate `ratelimit:campaign:{id}` counter key. Strict per-campaign ceilings were considered and declined (extra key complexity without current need).
 
 ---
 
@@ -280,7 +280,7 @@ flowchart TD
 ```
 
 Key properties:
-- **At-most-once sends**: duplicates are structurally impossible — sending requires winning the guarded `QUEUED → SENDING` claim, and only one worker ever does. A crash inside the claim→SMTP window may lose that email (marked FAILED as interrupted on retry); it can never double-send. This satisfies the assignment's hard constraint ("same email shall not be sent more than once").
+- **At-most-once sends**: duplicates are structurally impossible — sending requires winning the guarded `QUEUED → SENDING` claim, and only one worker ever does. A crash inside the claim→SMTP window may lose that email (marked FAILED as interrupted on retry); it can never double-send. This satisfies the core constraint that the same email shall not be sent more than once.
 - **Stop at failure (final decision):** a thrown send is a *confirmed* rejection — the server refused the message — so the row goes straight to `FAILED(lastError)` and BullMQ acks. No send-retries: retrying would either duplicate an ambiguous send or strand rows in SENDING (the original rethrow-on-stale-attempt-count path did exactly that under Ethereal 429s; fixed + regression-tested). `attempts: 3` survives purely as crash-window sweep budget. Strays are acceptable; honesty of state is not.
 - **Rate-limit denial never fails a job**: the row is first reverted to QUEUED (state truth: SENDING must mean an SMTP attempt is in flight), then `moveToDelayed(next window start)` keeps the job alive, preserves relative order (FIFO within delayed set by score), and satisfies "delay into next available hour."
 - **Per-campaign cap via threshold lowering** (decided): `campaign.hourly_limit` lowers the effective lane threshold through the same `min()` — no separate per-campaign counter key.

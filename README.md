@@ -1,8 +1,6 @@
 # ReachInbox Email Job Scheduler
 
-Email scheduler built for the ReachInbox hiring assignment. Pick exact future send times for batches of leads, deliver them through Ethereal SMTP, survive restarts without losing or repeating anything, and watch it all from a Next.js dashboard.
-
-<!-- paste video link: [Watch the demo](...) -->
+Pick exact future send times for batches of leads, deliver them through Ethereal SMTP, survive restarts without losing or repeating anything, and watch it all from a Next.js dashboard.
 
 ## What it does
 
@@ -47,7 +45,7 @@ API, worker, and web run as separate processes on purpose. HTTP serving and job 
 
 ## Why nothing ever sends twice
 
-The assignment draws one hard line: the same email must never go out more than once. That line picks the delivery guarantee for you.
+This project draws one hard line: the same email must never go out more than once. That line picks the delivery guarantee.
 
 An at-least-once system retries until success and will eventually deliver a duplicate. This project is at-most-once instead: an email goes out once or not at all. For cold outreach the trade is lopsided. One lost send costs you a lead; one duplicate burns them.
 
@@ -129,9 +127,9 @@ Manual E2E fixture: `scripts/demo-leads.csv`.
 
 ## Known limitations and trade-offs
 
-- Total Redis data loss needs reconciliation. `POST /admin/reconcile` was designed for exactly this case: re-enqueue every `QUEUED` row using the deterministic `send-{emailId}` ids (DESIGN.md §8.3). It is not built, deadline scope won. Until it exists, any manual re-enqueue must reuse those ids. Ad-hoc insertion is the only path that could break the never-duplicate guarantee.
-- Attachments are a UI placeholder and bodies ship as plain text. Both are explicit assignment non-goals.
-- Auth lives entirely in the web layer. API routes trust CORS/loopback origins rather than verifying their own JWTs. Deliberate deviation, documented in DESIGN.md §7.
+- Total Redis data loss needs reconciliation. `POST /admin/reconcile` was designed for exactly this case: re-enqueue every `QUEUED` row using the deterministic `send-{emailId}` ids (DESIGN.md §8.3). It is not yet built. Until it exists, any manual re-enqueue must reuse those ids. Ad-hoc insertion is the only path that could break the never-duplicate guarantee.
+- Attachments are a UI placeholder and bodies ship as plain text. Both are out of scope for this project.
+- Auth lives entirely in the web layer. API routes trust CORS/loopback origins rather than verifying their own JWTs. Documented in DESIGN.md §7.
 - Ethereal throttles around 130 rapid sends per account per hour, external to our limiter. Confirmed rejections become visible `FAILED` rows.
 - Ordering across hour windows is approximate. Correctness beat strict FIFO in every trade-off call.
 
